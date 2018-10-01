@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Author:
+# asrivas3 Abhishek Kumar Srivastava
+# CSC 548 Assignment#2 Problem#1
+
+#Usage: ./my_prun [CMD]
+
+rm rank* 2> /dev/null
+
+if [ $1 == "-n" ] 
+then
+param=$2
+CMD=$3
+elif [ $2 == "-n" ] 
+then
+param=$3
+CMD=$1
+else
+echo "Usage: my_prun -n <number of nodes> <executable>"
+exit
+fi
+
+
+#CMD=$1
+NODEFILE=nodefile.txt
+
+echo $SLURM_NODELIST | tr -d c | tr -d [ | tr -d ] | perl -pe 's/(\d+)-(\d+)/join(",",$1..$2)/eg' | awk 'BEGIN { RS=","} { print "c"$1 }' > $NODEFILE
+
+rank=0
+port=25000
+
+touch nodeinfo.txt
+
+for curNode in `cat $NODEFILE`
+do
+ssh -n $curNode "cd $PWD;$CMD $NODEFILE $port $rank" & pid[$rank]=$!
+(( rank++ ))
+(( port++ ))
+done
+
+rank=0
+for curNode in 0 1 2 3 4 5 6 7; do
+  wait ${pid[$rank]}
+  (( rank++ ))
+done
+
+rm rank*
